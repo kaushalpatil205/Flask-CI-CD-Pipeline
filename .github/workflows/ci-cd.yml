@@ -1,0 +1,91 @@
+name: Flask Application CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, staging ]
+  release:
+    types: [ created ]
+
+jobs:
+  build-and-test:
+    name: Install Dependencies & Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run Tests with pytest
+        run: |
+          pytest --maxfail=1 --disable-warnings -q
+
+  build:
+    name: Build Application Package
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Prepare Deployment Artifacts
+        run: |
+          mkdir -p build_output
+          cp -r *.py requirements.txt build_output/
+          echo "Build completed successfully on $(date)" > build_output/build_info.txt
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flask-app-package
+          path: build_output/
+
+  deploy-staging:
+    name: Deploy to Staging Environment
+    needs: build
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: flask-app-package
+
+      - name: Simulate Staging Deployment
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: |
+          echo "Deploying application to STAGING server..."
+          echo "Authenticating using API_TOKEN (Length: ${#API_TOKEN})"
+          echo "Deployment to Staging Successful!"
+
+  deploy-production:
+    name: Deploy to Production Environment
+    needs: build
+    if: github.event_name == 'release' && github.event.action == 'created'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: flask-app-package
+
+      - name: Simulate Production Deployment
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: |
+          echo "🚀 LIVE RELEASE DETECTED! Deploying application to PRODUCTION server..."
+          echo "Authenticating with secure deployment keys..."
+          echo "Production Deployment Successful! Live version updated."
