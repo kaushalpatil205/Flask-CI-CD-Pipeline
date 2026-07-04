@@ -1,133 +1,101 @@
-# Student Registration System
+# 🚀 Continuous Integration & Continuous Deployment (CI/CD) Pipeline Assignment
 
-A simple **Flask** web application to manage student records with **MongoDB** as the backend database. Users can **add, view, update, and delete** student details.
-
----
-
-## Features
-
-* List all students on the home page
-* Add a new student
-* Update existing student details
-* Delete a student with confirmation
-* Simple and responsive UI using Bootstrap
+This repository demonstrates an end-to-end automated DevOps pipeline for a Python Flask Web Application. It features two industry-standard CI/CD implementations:
+1. **Jenkins Declarative Pipeline** (`Jenkinsfile`)
+2. **GitHub Actions Workflow** (`.github/workflows/ci-cd.yml`)
 
 ---
 
-## Tech Stack
+## 🏛️ Architecture & Workflow Overview
 
-* **Backend:** Python, Flask
-* **Database:** MongoDB (via Flask-PyMongo)
-* **Frontend:** HTML, Jinja2 templates, Bootstrap 5
-* **Environment Variables:** Managed via `.env` file
-
----
-
-## Setup Instructions
-
-### 1. Clone the repository
-
-```bash
-git clone <your-repo-url>
-cd <repo-folder>
+```
+[ Developer Pushes Code / Creates Release Tag ]
+                      │
+        ┌─────────────┴─────────────┐
+        ▼                           ▼
+  [ Jenkins Server ]        [ GitHub Actions ]
+        │                           │
+        ├── 1. Build & Pip Install  ├── 1. Install Dependencies
+        ├── 2. Run Pytest Suite     ├── 2. Run Pytest Suite
+        └── 3. Deploy to Staging    ├── 3. Package Build Artifacts
+                                    ├── 4. Deploy to Staging (on `staging` branch push)
+                                    └── 5. Deploy to Production (on Release Tag)
 ```
 
-### 2. Create and activate a virtual environment
+---
 
+## 🛠️ Part 1: Jenkins CI/CD Pipeline
+
+The Jenkins pipeline is defined in the `Jenkinsfile` at the root of this repository.
+
+### Prerequisites & Setup Instructions
+1. **Host Jenkins via Docker**:
+   ```bash
+   docker run -d --name jenkins-server -p 8080:8080 -p 50000:50000 -v jenkins_home:/var/jenkins_home jenkins/jenkins:lts
+   ```
+2. **Install Python inside Jenkins Container**:
+   ```bash
+   docker exec -u 0 -it jenkins-server bash -c "apt-get update && apt-get install -y python3 python3-pip python3-venv"
+   ```
+3. **Pipeline Configuration**:
+   - Create a new **Pipeline Item** in Jenkins.
+   - Point the **Definition** to `Pipeline script from SCM`.
+   - Select **Git** and provide this repository URL (`https://github.com/kaushalpatil205/flask_Practice.git`).
+   - Configure **Poll SCM** with `H/5 * * * *` to check for changes automatically every 5 minutes.
+
+### 📸 Jenkins Execution Proofs
+
+#### 1. Jenkins Pipeline Configuration
+![Jenkins Configuration](screenshots/01_jenkins_pipeline_config.png)
+
+#### 2. Jenkins Stage View (Build, Test, Deploy)
+![Jenkins Stage View](screenshots/02_jenkins_stage_view.png)
+
+#### 3. Jenkins Console Output & Test Results
+![Jenkins Console Output](screenshots/03_jenkins_console_output.png)
+
+---
+
+## 🐙 Part 2: GitHub Actions CI/CD Pipeline
+
+The cloud-native workflow is configured in `.github/workflows/ci-cd.yml`.
+
+### How It Works
+- **Push to `main`**: Runs unit tests and packages build artifacts.
+- **Push to `staging`**: Automatically deploys the tested build to the Staging server.
+- **GitHub Release Tag**: When a release is published (e.g., `v1.0.0`), the workflow triggers the **Deploy to Production** job.
+
+### 🔐 Configuring Environment Secrets
+To securely authenticate deployments without hardcoding credentials, navigate to **Settings > Secrets and variables > Actions** and add:
+- `DEPLOY_KEY`: SSH private key for connecting to deployment servers.
+- `API_TOKEN`: Authentication token for external cloud services.
+
+### 📸 GitHub Actions Execution Proofs
+
+#### 4. Configured GitHub Repository Secrets
+![GitHub Secrets](screenshots/04_github_secret.png)
+
+#### 5. Successful Staging Pipeline Execution
+![GitHub Actions Staging](screenshots/05_github_actions_staging.png)
+
+#### 6. Successful Production Deployment (Triggered by Release Tag)
+![GitHub Actions Production](screenshots/06_github_actions_production.png)
+
+---
+
+## 🚀 How to Run & Verify This Repository Locally
+
+### 1. Clone the Repository
 ```bash
-python -m venv venv
-# Activate venv
-# Windows:
-venv\Scripts\activate
-# Linux / Mac:
+git clone https://github.com/kaushalpatil205/flask_Practice.git
+cd flask_Practice
+```
+
+### 2. Set Up Virtual Environment & Run Tests
+```bash
+python3 -m venv venv
 source venv/bin/activate
-```
-
-### 3. Install dependencies
-
-```bash
 pip install -r requirements.txt
+pip install pytest
+pytest
 ```
-
-**`requirements.txt` example:**
-
-```
-Flask
-Flask-PyMongo
-python-dotenv
-bson
-```
-
-### 4. Configure environment variables
-
-Create a `.env` file in the project root:
-
-```
-MONGO_URI=<your-mongodb-connection-string>
-SECRET_KEY=<your-secret-key>
-```
-
-### 5. Run the application
-
-```bash
-python app.py
-```
-
-Open your browser at: [http://localhost:8000](http://localhost:8000)
-
----
-
-## Project Structure
-
-```
-project/
-│
-├── templates/
-│   ├── base.html
-│   ├── index.html
-│   ├── add_student.html
-│   ├── update_student.html
-│
-├── app.py
-├── requirements.txt
-└── .env
-```
-
----
-
-## Screenshots
-
-**Home Page**
-Lists all students with Edit/Delete buttons.
-- <img width="1902" height="607" alt="image" src="https://github.com/user-attachments/assets/a58a6a6d-4978-4769-8074-232e4d31e69d" />
-
-
-**Add Student**
-Form to add a new student.
-- <img width="1897" height="801" alt="image" src="https://github.com/user-attachments/assets/d65d25c3-ebb5-410a-adb1-e130ad7c5878" />
-
-
-**Update Student**
-Form pre-filled with student details.
-- <img width="1905" height="897" alt="image" src="https://github.com/user-attachments/assets/04febf01-879f-431f-ab07-abcfb993acf1" />
-
-
-
----
-
-## Notes
-
-* Make sure MongoDB is running and accessible via the URI in `.env`
-* Delete action includes a confirmation page to prevent accidental deletion
-* Uses `ObjectId` from `bson` to work with MongoDB document IDs
-
----
-
-## License
-
-MIT License
-
----
-
-
-
